@@ -1,17 +1,22 @@
 {
-	"name": "makesites/uglifyjs-php",
-	"version": "0.5.0",
+	"name": "orlleite/uglifyjs-php-exec",
+	"version": "0.1.0",
 	"type": "library",
-	"description": "Using UglifyJS as a service for JavaScript minification in PHP",
+	"description": "A PHP class that minifies JavaScript wrapping UglifyJS",
 	"keywords": ["uglifyjs","minify", "saas"],
-	"homepage": "http://makesites.org",
-	"license": "MIT",
+	"homepage": "http://github.com/orlleite",
+	"license": "APACHE 2.0",
 	"authors": [
 		{
 			"name": "Makis Tracend",
 			"email": "makis@makesit.es",
 			"homepage": "http://github.com/tracend",
 			"role": "Lead Developer"
+		},
+		
+		{
+			"name": "Orlando Leite",
+			"homepage": "http://github.com/orlleite"
 		}
 	],
 	"require": {
@@ -20,7 +25,7 @@
 	"repositories": [
 		{
 			"type": "git",
-			"url": "http://github.com/makesites/uglifyjs-php"
+			"url": "http://github.com/orlleite/uglifyjs-php-exec"
 		}
 	]
 }

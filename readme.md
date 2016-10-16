@@ -1,8 +1,9 @@
 # UglifyJS.php
 
-Using UglifyJS as a service for JavaScript minification in PHP
+Using UglifyJS wrap in PHP
 
-Note that this class is abstructing the requests to a remote service run by an [UglifyJS-service](https://github.com/marijnh/UglifyJS-service)
+- You have to install command line uglifyjs ``npm install uglify-js -g``
+- Versions follow the versions of the UglifyJS package
 
 
 ## Usage
@@ -24,10 +25,6 @@ These are the main methods to execute:
 
 Setting the temp dir for the cached files.
 
-### compiler( $url )
-
-Setting the compiler location as a full url (including port) . Defaults to ```http://marijnhaverbeke.nl:80/uglifyjs```
-
 ### add( $script )
 
 Add a script in the queue to be compressed.
@@ -41,8 +38,6 @@ Parsing queue and compressing files. Optionally outputting the result if ```$out
 
 Created by Makis Tracend ( [@tracend](http://github.com/tracend) )
 
-Distributed through [Makesites.org](http://makesites.org/)
-
 ### Trivia
 
 * Originally created to be part of [KISSCMS](https://github.com/makesites/kisscms/issues/99)
@@ -50,4 +45,4 @@ Distributed through [Makesites.org](http://makesites.org/)
 
 ### License
 
-Released under the [Apache License v2.0](http://makesites.org/licenses/APACHE-2.0)
+Released under the [Apache License v2.0](http://www.apache.org/licenses/LICENSE-2.0)

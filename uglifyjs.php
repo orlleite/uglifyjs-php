@@ -1,28 +1,20 @@
 <?php
 /**
- * PHP class for JavaScript minification  using UglifyJS as a service.
- * https://github.com/makesites/uglifyjs-php
+ * PHP class for JavaScript minification  using UglifyJS by exec command.
+ * https://github.com/orlleite/uglifyjs-php-exec
  *
  * Created by Makis Tracend (@tracend)
- * Distributed through [Makesites.org](http://makesites.org/)
- * Released under the [Apache License v2.0](http://makesites.org/licenses/APACHE-2.0)
+ * Adapted by Orlando Leite (@orlleite)
+ * Released under the [Apache License v2.0](http://www.apache.org/licenses/LICENSE-2.0)
  */
 class UglifyJS {
 
 	var $_srcs = array();
-	var $_mode = "WHITESPACE_ONLY";
-	var $_warning_level = "DEFAULT";
-	var $_pretty_print = false;
+	var $_options = "-m -c";
 	var $_debug = true;
 	var $_cache_dir = "";
-	var $_code_url_prefix = "";
 	var $_timestamp = 0;
-	var $_compiler = array(
-		"host" => "marijnhaverbeke.nl",
-		"port" => "80",
-		"path" => "/uglifyjs"
-	);
-
+	
 	function UglifyJS() { }
 
 	/**
@@ -42,121 +34,25 @@ class UglifyJS {
 		return $this;
 	}
 
-	function compiler( $string ) {
-		// get the previous compiler
-		$compiler = $this->_compiler;
-		$url = parse_url( $string );
-		// gather vars
-		if( array_key_exists("host", $url) ) $compiler['host'] = $url['host'];
-		if( array_key_exists("port", $url) ) $compiler['port'] = $url['port'];
-		if( array_key_exists("path", $url) ) $compiler['path'] = $url['path'];
-		// save back the compiler
-		$this->_compiler = $compiler;
-		return $compiler;
-	}
-
 	function setFile( $name=false ) {
 		if($name) $this->_file = $name;
 		return $this;
 	}
-	/**
-	 * Sets the URL prefix to use with the UglifyJS service's code_url
-	 * parameter.
-	 *
-	 * Using code_url tells the compiler service the URLs of the scripts to
-	 * fetch. The file paths added in add() must therefore be relative to this
-	 * URL.
-	 *
-	 * Example usage:
-	 *
-	 * $c->add("js/my-app.js")
-	 *   ->add("js/popup.js")
-	 *   ->useCodeUrl('http://www.example.com/app/')
-	 *   ->cacheDir("/tmp/js-cache/")
-	 *   ->write();
-	 *
-	 * This assumes your PHP script is in a directory /app/ and that the JS is in
-	 * /app/js/ and accessible via HTTP.
-	 */
-	function useCodeUrl($code_url_prefix) {
-		$this->_code_url_prefix = $code_url_prefix;
-		return $this;
-	}
 
 	/**
-	 * Tells the compiler to pretty print the output.
+	 * Set compiler options
 	 */
-	function prettyPrint() {
-		$this->_pretty_print = true;
-		return $this;
+	function setOptions( $opt )
+	{
+		$this->_options = $opt;
 	}
-
+	
 	/**
-	 * Turns of the debug info.
-	 * By default statistics, errors and warnings are logged to the console.
+	 * Get compiler options
 	 */
-	function hideDebugInfo() {
-		$this->_debug = false;
-		return $this;
-	}
-
-	/**
-	 * Sets the compilation mode to optimize whitespace only.
-	 */
-	function whitespaceOnly() {
-		$this->_mode = "WHITESPACE_ONLY";
-		return $this;
-	}
-
-	/**
-	 * Sets the compilation mode to simple optimizations.
-	 */
-	function simpleMode() {
-		$this->_mode = "SIMPLE_OPTIMIZATIONS";
-		return $this;
-	}
-
-	/**
-	 * Sets the compilation mode to advanced optimizations (recommended).
-	 */
-	function advancedMode() {
-		$this->_mode = "ADVANCED_OPTIMIZATIONS";
-		return $this;
-	}
-
-	/**
-	 * Gets the compilation mode from the URL, set the mode param to
-	 * 'w', 's' or 'a'.
-	 */
-	function getModeFromUrl() {
-		if ($_GET['mode'] == 's') $this->simpleMode();
-		else if ($_GET['mode'] == 'a') $this->advancedMode();
-		else $this->whitespaceOnly();
-		return $this;
-	}
-
-	/**
-	 * Sets the warning level to QUIET.
-	 */
-	function quiet() {
-		$this->_warning_level = "QUIET";
-		return $this;
-	}
-
-	/**
-	 * Sets the default warning level.
-	 */
-	function defaultWarnings() {
-		$this->_warning_level = "DEFAULT";
-		return $this;
-	}
-
-	/**
-	 * Sets the warning level to VERBOSE.
-	 */
-	function verbose() {
-		$this->_warning_level = "VERBOSE";
-		return $this;
+	function getOptions()
+	{
+		return $this->_options;
 	}
 
 	/**
@@ -229,8 +125,9 @@ class UglifyJS {
 
 	function _compile() {
 		// No debug info?
-		$result = $this->_makeRequest();
-		return $result;
+		putenv('PATH='.getenv('PATH').':/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin');
+		exec( 'uglifyjs '.implode( ' ', $this->_srcs ).' '.$this->_options.' warnings=false 2>&1', $output, $rtnVal);
+		return implode("\n", $output );
 	}
 
 	function _getCacheFileName() {
@@ -238,42 +135,7 @@ class UglifyJS {
 	}
 
 	function _getHash() {
-		return md5(implode(",", $this->_srcs) . "-" .
-				$this->_mode . "-" .
-				$this->_warning_level . "-" .
-				$this->_pretty_print . "-" .
-				$this->_debug);
-	}
-
-	function _getParams() {
-		$params = array();
-		foreach ($this->_getParamList() as $key => $value) {
-			$params[] = preg_replace("/_[0-9]$/", "", $key) . "=" . urlencode($value);
-		}
-		return implode("&", $params);
-	}
-
-	function _getParamList() {
-		$params = array();
-		if ($this->_code_url_prefix) {
-			// Send the URL to each source file instead of the raw source.
-			$i = 0;
-			foreach($this->_srcs as $file){
-				$params["code_url_$i"] = $this->_code_url_prefix . $file;
-				$i++;
-			}
-		} else {
-			$params["js_code"] = $this->_readSources();
-		}
-		$params["compilation_level"] = $this->_mode;
-		$params["output_format"] = "xml";
-		$params["warning_level"] = $this->_warning_level;
-		if ($this->_pretty_print) $params["formatting"] = "pretty_print";
-		$params["output_info_1"] = "compiled_code";
-		$params["output_info_2"] = "statistics";
-		$params["output_info_3"] = "warnings";
-		$params["output_info_4"] = "errors";
-		return $params;
+		return md5(implode(",", $this->_srcs) . "-" . $this->_options);
 	}
 
 	function _readSources() {
@@ -282,43 +144,6 @@ class UglifyJS {
 			$code .= file_get_contents($src) . "\n\n";
 		}
 		return $code;
-	}
-
-	function _makeRequest() {
-		$data = $this->_getParams();
-		//$referer = @$_SERVER["HTTP_REFERER"] or "";
-		$referer = "http://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
-		// variables
-		extract($this->_compiler);
-
-		$fp = fsockopen($host, $port);
-		if (!$fp) {
-			throw new Exception("Unable to open socket");
-		}
-
-		if ($fp) {
-			fputs($fp, "POST $path HTTP/1.1\r\n");
-			fputs($fp, "Host: $host\r\n");
-			fputs($fp, "Referer: $referer\r\n");
-			fputs($fp, "Content-type: application/x-www-form-urlencoded\r\n");
-			fputs($fp, "Content-length: ". strlen($data) ."\r\n");
-			fputs($fp, "Connection: close\r\n\r\n");
-			fputs($fp, $data);
-
-			$result = "";
-			while (!feof($fp)) {
-				$result .= fgets($fp, 128);
-			}
-
-			fclose($fp);
-		}
-
-		$data = substr($result, (strpos($result, "\r\n\r\n")+4));
-		if (strpos(strtolower($result), "transfer-encoding: chunked") !== FALSE) {
-			$data = $this->_unchunk($data);
-		}
-
-		return $data;
 	}
 
 	function _unchunk($data) {
